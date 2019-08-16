@@ -17,22 +17,22 @@ public class RoomController {
 
 	@PostMapping
 	public Room saveRoom(@RequestBody RoomDTO room) {
-		return roomService.saveRoom(roomService.convertDTO(room));
+		return roomService.save(roomService.convertDTO(room));
 	}
 
 	@PostMapping(value = "/list")
 	public List<Room> saveRooms(@RequestBody List<RoomDTO> rooms) {
-		return roomService.saveRooms(roomService.convertDTO(rooms));
+		return roomService.saveAll(roomService.convertDTO(rooms));
 	}
 
 	@GetMapping(value = "/{id}")
 	public Room getRoomById(@PathVariable("id") int id) {
-		return roomService.getRoomById(id);
+		return roomService.findById(id);
 	}
 
 	@GetMapping
 	public List<Room> findRooms() {
-		return roomService.findRooms();
+		return roomService.findAll();
 	}
 
 	@PutMapping
@@ -42,12 +42,12 @@ public class RoomController {
 
 	@DeleteMapping
 	public boolean deleteRoom(@RequestBody RoomDTO room) {
-		return roomService.deleteRoom(roomService.convertDTO(room));
+		return roomService.delete(roomService.convertDTO(room));
 	}
 
 	@DeleteMapping(value = "/{id}")
 	public boolean deleteRoomById(@PathVariable("id") int id) {
-		return roomService.deleteRoomById(id);
+		return roomService.deleteById(id);
 	}
 
 	@DeleteMapping(value = "/all")

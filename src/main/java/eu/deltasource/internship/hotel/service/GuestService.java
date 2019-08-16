@@ -3,7 +3,7 @@ package eu.deltasource.internship.hotel.service;
 
 import eu.deltasource.internship.hotel.domain.Guest;
 
-import eu.deltasource.internship.hotel.exception.ArgumentNotValidException;
+import eu.deltasource.internship.hotel.exception.InvalidArgumentException;
 import eu.deltasource.internship.hotel.exception.ItemNotFoundException;
 import eu.deltasource.internship.hotel.repository.GuestRepository;
 
@@ -14,144 +14,143 @@ import java.util.Arrays;
 import java.util.List;
 
 /**
- * Service class for
- * business logic of creating
- * guests, searching, deleting
- * and updating
+ * Represents services for a guest
  */
 @Service
 public class GuestService {
 
-	private final GuestRepository guestRepository;
+    private final GuestRepository guestRepository;
 
-	/**
-	 * Constructor that takes
-	 * repository object which is annotated as
-	 * Autowired and the repository itself as bean (@Repository)
-	 */
-	@Autowired
-	public GuestService(GuestRepository guestRepository) {
-		this.guestRepository = guestRepository;
-	}
+    /**
+     * This is a constructor
+     *
+     * @param guestRepository the guest repository
+     */
+    @Autowired
+    public GuestService(GuestRepository guestRepository) {
+        this.guestRepository = guestRepository;
+    }
 
-	/**
-	 * Gets a list of all the guests - if there are any
-	 *
-	 * @return list of all the guests
-	 */
-	public List<Guest> findAll() {
-		return guestRepository.findAll();
-	}
+    /**
+     * Gets a list of all guests
+     *
+     * @return list of all existing guests
+     */
+    public List<Guest> findAll() {
+        return guestRepository.findAll();
+    }
 
-	/**
-	 * Tries to find a guest with given ID
-	 *
-	 * @param id id of the guest
-	 * @return Guest object if one is found
-	 **/
-	public Guest findById(int id) {
-		if (guestRepository.existsById(id)) {
-			return guestRepository.findById(id);
-		}
-		throw new ItemNotFoundException("User does not exist");
-	}
+    /**
+     * Searches guest by id
+     *
+     * @param id guest's id
+     * @return copy the found guest object
+     **/
+    public Guest findById(int id) {
+        if (!guestRepository.existsById(id)) {
+            throw new ItemNotFoundException("Guest with id " + id + " does not exist!");
+        }
+        return guestRepository.findById(id);
+    }
 
-	/**
-	 * Creates new guest
-	 *
-	 * @param item the new guest
-	 */
-	public Guest save(Guest item) {
-		validateGuest(item);
-		guestRepository.save(item);
-		return findById(guestRepository.count());
-	}
+    /**
+     * Creates a guest
+     *
+     * @param guest the new guest
+     * @return the new added guest
+     */
+    public Guest save(Guest guest) {
+        validateGuest(guest);
+        guestRepository.save(guest);
+        return findById(guestRepository.count());
+    }
 
-	/**
-	 * Creates list of new guests
-	 *
-	 * @param guests the list of new guests
-	 * @return list of all guests
-	 */
-	public List<Guest> saveAll(List<Guest> guests) {
-		validateGuestList(guests);
-		guestRepository.saveAll(guests);
-		return findAll();
-	}
+    /**
+     * Creates a list of guests
+     *
+     * @param guests the list of guests
+     * @return list of all existing guests
+     */
+    public List<Guest> saveAll(List<Guest> guests) {
+        validateGuestList(guests);
+        guestRepository.saveAll(guests);
+        return findAll();
+    }
 
-	/**
-	 * Creates multiple guests
-	 *
-	 * @param items Guest varargs
-	 * @return list of all guests
-	 */
-	public List<Guest> saveAll(Guest... items) {
-		validateGuestList(Arrays.asList(items));
-		guestRepository.saveAll(items);
-		return findAll();
-	}
+    /**
+     * Creates one or several guests
+     *
+     * @param guests array of guests
+     * @return list of all existing guests
+     */
+    public List<Guest> saveAll(Guest... guests) {
+        if (guests == null) {
+            throw new InvalidArgumentException("Invalid guests");
+        }
+        validateGuestList(Arrays.asList(guests));
+        guestRepository.saveAll(guests);
+        return findAll();
+    }
 
-	/**
-	 * Updates an existing guest
-	 *
-	 * @param guest the guest that will be updated
-	 * @return the updated guest
-	 */
-	public Guest updateGuest(Guest guest) {
-		validateGuest(guest);
-		findById(guest.getGuestId());
-		return guestRepository.updateGuest(guest);
-	}
+    /**
+     * Updates an existing guest
+     *
+     * @param guest the guest that is going to be updated
+     * @return the updated guest
+     */
+    public Guest update(Guest guest) {
+        validateGuest(guest);
+        findById(guest.getGuestId());
+        return guestRepository.updateGuest(guest);
+    }
 
-	/**
-	 * Deletes guest by id
-	 *
-	 * @param id guest's id
-	 * @return true if the guest is successfully removed
-	 */
-	public boolean deleteById(int id) {
-		if (guestRepository.existsById(id)) {
-			return guestRepository.deleteById(id);
-		}
-		throw new ItemNotFoundException("Guest with id " + id + " does not exist!");
-	}
+    /**
+     * Deletes a guest by id
+     *
+     * @param id guest's id
+     * @return true if the guest is successfully deleted
+     */
+    public boolean deleteById(int id) {
+        if (!guestRepository.existsById(id)) {
+            throw new ItemNotFoundException("Guest with id " + id + " does not exist!");
+        }
+        return guestRepository.deleteById(id);
+    }
 
-	/**
-	 * Deletes a guest
-	 * if it finds one matching
-	 *
-	 * @param guest the guest that will be removed
-	 * @return true if the guest if successfully removed
-	 */
-	public boolean deleteGuest(Guest guest) {
-		validateGuest(guest);
-		return guestRepository.delete(findById(guest.getGuestId()));
-	}
+    /**
+     * Deletes a guest
+     *
+     * @param guest the guest that is going to be deleted
+     * @return true if the guest is successfully deleted
+     */
+    public boolean delete(Guest guest) {
+        validateGuest(guest);
+        return guestRepository.delete(findById(guest.getGuestId()));
+    }
 
-	/**
-	 * Deletes all existing guests
-	 */
-	public void deleteAll() {
-		guestRepository.deleteAll();
-	}
+    /**
+     * Deletes all existing guests
+     */
+    public void deleteAll() {
+        guestRepository.deleteAll();
+    }
 
-	private void validateGuestList(List<Guest> guests) {
-		if (guests == null) {
-			throw new ArgumentNotValidException("Invalid list of guests!");
-		}
-		for (Guest guest : guests) {
-			validateGuest(guest);
-		}
-	}
+    private void validateGuestList(List<Guest> guests) {
+        if (guests == null || guests.isEmpty()) {
+            throw new InvalidArgumentException("Invalid list of guests!");
+        }
+        for (Guest guest : guests) {
+            validateGuest(guest);
+        }
+    }
 
-	private void validateGuest(Guest guest) {
-		if (guest == null) {
-			throw new ArgumentNotValidException("Invalid guest!");
-		}
-		if (guest.getFirstName() == null || guest.getLastName() == null || guest.getGender() == null
-			|| guest.getFirstName().isEmpty() || guest.getLastName().isEmpty()) {
-			throw new ArgumentNotValidException("Invalid guest fields!");
-
-		}
-	}
+    private void validateGuest(Guest guest) {
+        if (guest == null) {
+            throw new InvalidArgumentException("Invalid guest!");
+        }
+        if (guest.getFirstName() == null || guest.getLastName() == null || guest.getGender() == null
+                || guest.getFirstName().isEmpty() || guest.getLastName().isEmpty()) {
+            throw new InvalidArgumentException("Invalid guest fields!");
+        }
+    }
 }

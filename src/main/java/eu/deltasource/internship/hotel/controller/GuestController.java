@@ -36,7 +36,7 @@ public class GuestController {
 
 	@PutMapping
 	public Guest updateGuest(@RequestBody Guest guest) {
-		return guestService.updateGuest(guest);
+		return guestService.update(guest);
 	}
 
 	@DeleteMapping(value = "/{id}")
@@ -51,6 +51,6 @@ public class GuestController {
 
 	@DeleteMapping
 	public boolean deleteGuest(@RequestBody Guest guest) {
-		return guestService.deleteGuest(guest);
+		return guestService.delete(guest);
 	}
 }

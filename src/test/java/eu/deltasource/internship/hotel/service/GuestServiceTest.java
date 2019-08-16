@@ -3,14 +3,15 @@ package eu.deltasource.internship.hotel.service;
 
 import eu.deltasource.internship.hotel.domain.Gender;
 import eu.deltasource.internship.hotel.domain.Guest;
-import eu.deltasource.internship.hotel.exception.ArgumentNotValidException;
+import eu.deltasource.internship.hotel.exception.InvalidArgumentException;
 import eu.deltasource.internship.hotel.exception.FailedInitializationException;
 import eu.deltasource.internship.hotel.exception.ItemNotFoundException;
 import eu.deltasource.internship.hotel.repository.GuestRepository;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.List;
 
 import static org.hamcrest.MatcherAssert.*;
@@ -18,188 +19,202 @@ import static org.hamcrest.Matchers.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class GuestServiceTest {
-	private GuestService service;
-	private Guest guest;
+    private GuestService guestService;
+    private Guest firstGuest;
 
-	@BeforeEach
-	public void setUp() {
-		GuestRepository repo = new GuestRepository();
-		service = new GuestService(repo);
-		guest = new Guest(1, "Gergana", "Todorova", Gender.FEMALE);
-		service.save(guest);
-	}
+    @BeforeEach
+    public void setUp() {
+        GuestRepository guestRepository = new GuestRepository();
+        guestService = new GuestService(guestRepository);
+    }
 
-	@Test
-	public void findByIdShouldWorkWhenSearchingWithValidId() {
-		//Given
+    @Test
+    public void getGuestByExistingId() {
+        //given
+        firstGuest = new Guest(1, "Maria", "Johnson", Gender.FEMALE);
+        guestService.save(firstGuest);
 
-		//When
-		Guest searchedGuest = service.findById(guest.getGuestId());
+        //when
+        Guest searchedGuest = guestService.findById(firstGuest.getGuestId());
 
-		//Then
-		assertEquals(guest, searchedGuest);
-	}
+        //then
+        assertEquals(firstGuest, searchedGuest);
+        assertEquals(firstGuest.getFirstName(), searchedGuest.getFirstName());
+        assertEquals(firstGuest.getLastName(), searchedGuest.getLastName());
+        assertEquals(firstGuest.getGender(), searchedGuest.getGender());
+    }
 
-	@Test
-	public void findByIdShouldThrowExceptionIfNoGuestWithSpecifiedId() {
-		//Given
-		int nonExistingId = guest.getGuestId() + 1;
+    @Test
+    public void getGuestByIdThatDoesNotExist() {
+        //given
+        firstGuest = new Guest(1, "Maria", "Johnson", Gender.FEMALE);
+        guestService.save(firstGuest);
+        int invalidId = firstGuest.getGuestId() + 1;
 
-		//When
+        // when and then
+        assertThrows(ItemNotFoundException.class, () -> guestService.findById(invalidId));
+    }
 
-		//Then
-		assertThrows(ItemNotFoundException.class, () -> service.findById(nonExistingId));
-	}
+    @Test
+    public void updateGuestSuccessfully() {
+        //given
+        firstGuest = new Guest(1, "Maria", "Johnson", Gender.FEMALE);
+        guestService.save(firstGuest);
+        Guest updatedGuest = new Guest(firstGuest.getGuestId(), "George", "Jordan", Gender.MALE);
 
-	@Test
-	public void updateGuestShouldWorkProperlyIfUpdatingExistingGuest() {
-		//Given
-		assertEquals("Gergana", guest.getFirstName());
-		assertEquals("Todorova", guest.getLastName());
-		assertEquals(Gender.FEMALE, guest.getGender());
+        //when
+        Guest actualGuest = guestService.update(updatedGuest);
+        assertEquals(updatedGuest, actualGuest);
 
-		//When
-		Guest updatedGuest = new Guest(guest.getGuestId(), "Petar", "Ivanov", Gender.MALE);
-		assertEquals(updatedGuest, service.updateGuest(updatedGuest));
+        //then
+        assertEquals(updatedGuest.getFirstName(), actualGuest.getFirstName());
+        assertEquals(updatedGuest.getLastName(), actualGuest.getLastName());
+        assertEquals(Gender.MALE, actualGuest.getGender());
+    }
 
-		//Then
-		assertEquals(updatedGuest.getFirstName(), service.findById(guest.getGuestId()).getFirstName());
-		assertEquals(updatedGuest.getLastName(), service.findById(guest.getGuestId()).getLastName());
-		assertEquals(Gender.MALE, service.findById(guest.getGuestId()).getGender());
-	}
+    @Test
+    public void updateGuestUnsuccessfully() {
+        //given
+        firstGuest = new Guest(1, "Maria", "Johnson", Gender.FEMALE);
+        guestService.save(firstGuest);
+        Guest updatedGuest = new Guest(firstGuest.getGuestId() + 1, "Martin", "Miller", Gender.MALE);
 
-	@Test
-	public void updateGuestShouldThrowExceptionWhenTryingToUpdateNonExistingOrNullGuest() {
-		//Given
-		Guest updatedGuest = new Guest(guest.getGuestId() + 1, "Ivan", "Petrov", Gender.MALE);
+        //when and then
+        assertThrows(ItemNotFoundException.class, () -> guestService.update(updatedGuest));
+        assertThrows(InvalidArgumentException.class, () -> guestService.update(null));
+    }
 
-		//When
+    @Test
+    public void deleteGuestByExistingId() {
+        //given
+        firstGuest = new Guest(1, "Maria", "Johnson", Gender.FEMALE);
+        guestService.save(firstGuest);
 
-		//Then
-		assertThrows(ItemNotFoundException.class, () -> service.updateGuest(updatedGuest));
-		assertThrows(ArgumentNotValidException.class, () -> service.updateGuest(null));
-	}
+        //when and then
+        assertTrue(guestService.deleteById(firstGuest.getGuestId()));
+    }
 
-	@Test
-	public void deleteByIdShouldReturnTrueIfGuestWasDeleted() {
-		assertTrue(service.deleteById(guest.getGuestId()));
-	}
+    @Test
+    public void deleteGuestByIdThatDoesNotExist() {
+        //given
+        firstGuest = new Guest(1, "Maria", "Johnson", Gender.FEMALE);
+        guestService.save(firstGuest);
 
-	@Test
-	public void deleteByIdShouldThrowExceptionIfGuestWithThisIdNotFound() {
-		assertThrows(ItemNotFoundException.class, () -> service.deleteById(guest.getGuestId() + 1));
-	}
+        //when and then
+        assertThrows(ItemNotFoundException.class, () -> guestService.deleteById(firstGuest.getGuestId() + 1));
+    }
 
-	@Test
-	public void deleteGuestShouldReturnTrueIfGuestExists() {
-		//Given
-		assertTrue(service.findAll().contains(guest));
+    @Test
+    public void deleteExistingGuest() {
+        //given
+        firstGuest = new Guest(1, "Maria", "Johnson", Gender.FEMALE);
+        guestService.save(firstGuest);
 
-		//When
-		assertTrue(service.deleteGuest(guest));
+        //when
+        assertTrue(guestService.delete(firstGuest));
 
-		//Then
-		assertFalse(service.findAll().contains(guest));
-	}
+        //then
+        assertFalse(guestService.findAll().contains(firstGuest));
+    }
 
-	@Test
-	public void deleteGuestShouldReturnFalseIfGuestDoesNotExist() {
-		assertThrows(ItemNotFoundException.class,
-			() -> service.deleteGuest(new Guest(guest.getGuestId() + 1, "Gergana", "Todorova", Gender.FEMALE)));
-	}
+    @Test
+    public void deleteGuestThatDoesNotExist() {
+        //given
+        firstGuest = new Guest(1, "Maria", "Johnson", Gender.FEMALE);
+        guestService.save(firstGuest);
 
-	@Test
-	public void deleteAllShouldEmptyTheRepositoryList() {
-		//Given
-		assertFalse(service.findAll().isEmpty());
+        //when and then
+        assertThrows(ItemNotFoundException.class,
+                () -> guestService.delete(new Guest(firstGuest.getGuestId() + 1, "Gergana", "Todorova", Gender.FEMALE)));
+    }
 
-		//When
-		service.deleteAll();
+    @Test
+    public void deleteAllExistingGuests() {
+        //given
+        firstGuest = new Guest(1, "Maria", "Johnson", Gender.FEMALE);
+        Guest newGuest = new Guest(2, "Peter", "Miller", Gender.MALE);
+        guestService.saveAll(firstGuest, newGuest);
 
-		//Then
-		assertTrue(service.findAll().isEmpty());
-	}
+        //when
+        guestService.deleteAll();
 
-	@Test
-	public void findAllShouldReturnAllGuestsIfAny() {
-		//Given
-		Guest guest1 = new Guest(2, "Petar", "Petrov", Gender.MALE);
-		Guest guest2 = new Guest(3, "Georgi", "Tsankov", Gender.MALE);
+        //then
+        assertTrue(guestService.findAll().isEmpty());
+    }
 
-		//When
-		service.save(guest1);
-		service.save(guest2);
-		List<Guest> allGuests = service.findAll();
+    @Test
+    public void findAllExistingGuests() {
+        //given
+        firstGuest = new Guest(1, "Maria", "Johnson", Gender.FEMALE);
+        Guest secondGuest = new Guest(2, "Martin", "Dyson", Gender.MALE);
+        Guest thirdGuest = new Guest(3, "Joe", "Cunning", Gender.MALE);
 
-		//Then
-		assertThat("The list does not contain the expected number of elements", allGuests, hasSize(3));
-		assertThat("The list doesn't contain every element", allGuests, containsInAnyOrder(guest, guest1, guest2));
-	}
+        //when
+        guestService.saveAll(firstGuest, secondGuest, thirdGuest);
+        List<Guest> guests = guestService.findAll();
 
-	@Test
-	public void findAllShouldReturnEmptyListIfNoGuests() {
-		//Given
-		Guest guest1 = new Guest(2, "Petar", "Petrov", Gender.MALE);
-		Guest guest2 = new Guest(3, "Georgi", "Tsankov", Gender.MALE);
-		service.save(guest1);
-		service.save(guest2);
-		assertTrue(service.findAll().containsAll(Arrays.asList(guest, guest1, guest2)));
+        //then
+        assertThat(guests, hasSize(3));
+        assertThat(guests, containsInAnyOrder(firstGuest, secondGuest, thirdGuest));
+    }
 
-		//When
-		service.deleteById(guest.getGuestId());
-		service.deleteById(guest1.getGuestId());
-		service.deleteById(guest2.getGuestId());
+    @Test
+    public void findAllExistingGuestsEmptyList() {
+        //given
+        firstGuest = new Guest(1, "Maria", "Johnson", Gender.FEMALE);
+        Guest secondGuest = new Guest(2, "Martin", "Dyson", Gender.MALE);
+        Guest thirdGuest = new Guest(3, "Joe", "Cunning", Gender.MALE);
 
-		//Then
-		assertTrue(service.findAll().isEmpty());
-	}
+        //when and then
+        assertTrue(guestService.findAll().isEmpty());
+    }
 
-	@Test
-	public void saveShouldThrowExceptionIfNullOrInvalidGuestPassed() {
-		assertThrows(ArgumentNotValidException.class, () -> service.save(null));
-		assertThrows(FailedInitializationException.class, () -> service.save(new Guest(1, null, null, Gender.MALE)));
-	}
+    @Test
+    public void createGuestUnsuccessfully() {
+        //given
 
-	@Test
-	public void saveShouldWorkIfProperObjectPassed() {
-		//Given
-		Guest newGuest = new Guest(2, "Hristo", "Gluhov", Gender.MALE);
+        //when and then
+        assertThrows(InvalidArgumentException.class, () -> guestService.save(null));
+        assertThrows(FailedInitializationException.class, () -> guestService.save(new Guest(1, null, null, Gender.MALE)));
+    }
 
-		//When
+    @Test
+    public void createGuestSuccessfully() {
+        //given
+        firstGuest = new Guest(1, "Maria", "Johnson", Gender.FEMALE);
+        Guest newGuest = new Guest(2, "Mike", "Peterson", Gender.MALE);
 
-		//Then
-		assertDoesNotThrow(() -> service.save(newGuest));
-		Guest newGuestFromRepo = service.findById(service.findAll().size());
-		assertEquals(newGuest, newGuestFromRepo);
-	}
+        //when
+        guestService.save(firstGuest);
+        guestService.save(newGuest);
 
-	@Test
-	public void saveAllShouldWorkWhenPassedVarargs() {
-		//Given
-		Guest newGuest = new Guest(2, "Hristo", "Gluhov", Gender.MALE);
-		Guest newGuest1 = new Guest(3, "Georgi", "Tsankov", Gender.MALE);
+        //then
+        assertEquals(firstGuest, guestService.findById(1));
+        assertEquals(newGuest, guestService.findById(2));
+    }
 
-		//When
-		service.saveAll(newGuest, newGuest1);
-		List<Guest> allGuests = service.findAll();
+    @Test
+    public void createListOfGuests() {
+        //given
+        firstGuest = new Guest(1, "Maria", "Johnson", Gender.FEMALE);
+        Guest secondGuest = new Guest(2, "Michael", "Miller", Gender.MALE);
+        Guest thirdGuest = new Guest(3, "George", "Port", Gender.MALE);
+        List<Guest> guests = new ArrayList<>();
+        guests.add(firstGuest);
+        guests.add(secondGuest);
+        guests.add(thirdGuest);
 
-		//Then
-		assertThat("The list does not contain the expected number of elements", allGuests, hasSize(3));
-		assertThat("The list doesn't contain every element", allGuests, containsInAnyOrder(guest, newGuest, newGuest1));
-	}
+        //When
+        guestService.saveAll(guests);
+        List<Guest> allGuests = guestService.findAll();
 
-	@Test
-	public void saveAllShouldWorkWhenGivenProperList() {
-		//Given
-		Guest newGuest = new Guest(2, "Hristo", "Gluhov", Gender.MALE);
-		Guest newGuest1 = new Guest(3, "Georgi", "Tsankov", Gender.MALE);
+        //Then
+        assertThat(allGuests, hasSize(3));
+        assertThat(allGuests, containsInAnyOrder(firstGuest, secondGuest, thirdGuest));
+    }
 
-		//When
-		service.saveAll(Arrays.asList(newGuest, newGuest1));
-		List<Guest> allGuests = service.findAll();
-
-		//Then
-		assertThat("The list does not contain the expected number of elements", allGuests, hasSize(3));
-		assertThat("The list doesn't contain every element", allGuests, containsInAnyOrder(guest, newGuest, newGuest1));
-	}
+    @AfterEach
+    public void tearDown() {
+        guestService = null;
+    }
 }
