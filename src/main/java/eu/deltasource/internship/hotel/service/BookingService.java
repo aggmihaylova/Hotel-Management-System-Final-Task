@@ -133,7 +133,7 @@ public class BookingService {
         validateDates(from, to);
         Booking booking = findById(bookingId);
 
-        if (!validateBookingUpdateDates(from, to, booking.getRoomId(), bookingId)) {
+        if (!areBookingUpdateDatesOverlapped(from, to, booking.getRoomId(), bookingId)) {
             throw new BookingOverlappingException("Overlapping dates!");
         }
         booking.setBookingDates(from, to);
@@ -175,23 +175,23 @@ public class BookingService {
         if (booking.getGuestId() != findById(bookingId).getGuestId()) {
             throw new InvalidArgumentException("You are not allowed to change guest id!");
         }
-        if (!validateBookingUpdateDates(booking.getFrom(), booking.getTo(), booking.getRoomId(), bookingId)) {
+        if (!areBookingUpdateDatesOverlapped(booking.getFrom(), booking.getTo(), booking.getRoomId(), bookingId)) {
             throw new BookingOverlappingException("The room is already booked for this period!");
         }
     }
 
-    private boolean validateBookingUpdateDates(LocalDate from, LocalDate to, int roomId, int bookingId, int... idToIgnore) {
-
+    private boolean areBookingUpdateDatesOverlapped(LocalDate from, LocalDate to,
+                                                    int roomId, int bookingId, int... idToIgnore) {
         for (Booking booking : findAll()) {
             if (booking.getRoomId() == roomId) {
                 if (idToIgnore.length > 0 && booking.getBookingId() == idToIgnore[0]) {
                     continue;
                 }
                 if (bookingId == booking.getBookingId()) {
-                    return (validateBookingUpdateDates(from, to, roomId, bookingId, bookingId));
+                    return (areBookingUpdateDatesOverlapped(from, to, roomId, bookingId, bookingId));
                 }
-                if (!from.isBefore(booking.getTo()) || !to.isAfter(booking.getFrom())) {
-                    ;
+                if (from.isBefore(booking.getTo()) || to.isAfter(booking.getFrom())) {
+                    return false;
                 }
                 return false;
             }

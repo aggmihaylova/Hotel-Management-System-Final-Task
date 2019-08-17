@@ -10,12 +10,17 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY)
 @JsonSubTypes({
-	@JsonSubTypes.Type(value = BedDTO.class, name = "Bed"),
+        @JsonSubTypes.Type(value = BedDTO.class, name = "Bed"),
 
-	@JsonSubTypes.Type(value = ToiletDTO.class, name = "Toilet"),
-	@JsonSubTypes.Type(value = ShowerDTO.class, name = "Shower")})
+        @JsonSubTypes.Type(value = ToiletDTO.class, name = "Toilet"),
+        @JsonSubTypes.Type(value = ShowerDTO.class, name = "Shower")})
 public abstract class AbstractCommodityDTO {
 
-	public AbstractCommodityDTO() {
-	}
+    protected final int inventoryId;
+
+    private static int inventoryNumber;
+
+    public AbstractCommodityDTO() {
+        inventoryId = ++inventoryNumber;
+    }
 }

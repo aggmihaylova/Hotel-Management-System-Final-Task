@@ -24,5 +24,4 @@ public class Bed extends AbstractCommodity {
     public void prepare() {
         System.out.println("The bed sheets are being replaced!");
     }
-
 }

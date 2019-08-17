@@ -1,6 +1,5 @@
 package eu.deltasource.internship.hotel.domain.commodity;
 
-import com.fasterxml.jackson.annotation.JsonValue;
 import lombok.Getter;
 
 /**
