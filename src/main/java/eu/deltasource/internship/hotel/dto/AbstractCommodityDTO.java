@@ -17,7 +17,6 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 public abstract class AbstractCommodityDTO {
 
     protected final int inventoryId;
-
     private static int inventoryNumber;
 
     public AbstractCommodityDTO() {
