@@ -1,8 +1,10 @@
 # IntelliJ generated
+
 .idea/
 out/
 
 
 # Maven generated
+
 target/
 *.iml
