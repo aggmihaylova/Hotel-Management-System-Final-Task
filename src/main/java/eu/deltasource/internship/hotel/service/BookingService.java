@@ -90,9 +90,6 @@ public class BookingService {
      * @return list of all existing bookings
      */
     public List<Booking> saveAll(Booking... bookings) {
-        if (bookings == null) {
-            throw new InvalidArgumentException("Invalid bookings!");
-        }
         validateBookings(Arrays.asList(bookings));
         bookingRepository.saveAll(bookings);
         return findAll();
@@ -122,6 +119,8 @@ public class BookingService {
     }
 
     /**
+     * UNDER CONSTRUCTION
+     *
      * Updates booking by dates
      *
      * @param bookingId id of the booking that is going be updated
@@ -190,8 +189,8 @@ public class BookingService {
                 if (bookingId == booking.getBookingId()) {
                     return (areBookingUpdateDatesOverlapped(from, to, roomId, bookingId, bookingId));
                 }
-                if (from.isBefore(booking.getTo()) || to.isAfter(booking.getFrom())) {
-                    return false;
+                if (!from.isBefore(booking.getTo()) || !to.isAfter(booking.getFrom())) {
+                    continue;
                 }
                 return false;
             }

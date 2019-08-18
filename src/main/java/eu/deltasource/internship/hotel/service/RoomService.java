@@ -87,9 +87,6 @@ public class RoomService {
      * @return list of all existing rooms
      */
     public List<Room> saveAll(Room... rooms) {
-        if (rooms == null) {
-            throw new InvalidArgumentException("Invalid rooms");
-        }
         validateRoomList(Arrays.asList(rooms));
         roomRepository.saveAll(rooms);
         return findAll();

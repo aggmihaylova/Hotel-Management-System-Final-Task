@@ -43,8 +43,8 @@ public class BookingServiceTest {
         bookingRepository = new BookingRepository();
         guestRepository = new GuestRepository();
         roomRepository = new RoomRepository();
-        guestService = new GuestService(guestRepository);
         roomService = new RoomService(roomRepository);
+        guestService = new GuestService(guestRepository);
         bookingService = new BookingService(bookingRepository, roomService, guestService);
     }
 
@@ -130,8 +130,7 @@ public class BookingServiceTest {
         bookingService.deleteAll();
 
         //then
-        assertThrows(ItemNotFoundException.class, () -> bookingService.findById(1));
-        assertThrows(ItemNotFoundException.class, () -> bookingService.findById(2));
+        assertTrue(bookingService.findAll().isEmpty());
     }
 
     @Test
@@ -152,27 +151,26 @@ public class BookingServiceTest {
 
         // then
         assertEquals(newBooking, bookingService.findById(bookingId));
-        assertEquals(expectedBookingsSize, bookingService.findAll().size());
+        assertThat(bookingService.findAll(), hasSize(expectedBookingsSize));
     }
 
     @Test
     public void createBookingUnsuccessfully() {
         //given
         createBookings();
-        LocalDate thirdFrom = LocalDate.of(2019, 10, 3);
-        LocalDate thirdTo = LocalDate.of(2019, 10, 8);
-        Booking thirdBooking = new Booking(3, 3, 7, 2, thirdFrom, thirdTo);
-
         LocalDate from = LocalDate.of(2019, 10, 13);
         LocalDate to = LocalDate.of(2019, 10, 22);
-        Booking fourthBooking = new Booking(1, 1, 1, 1, from, to);
+        Booking booking = new Booking(1, 1, 1, 1, from, to);
 
         // when and then
-        // overlapping
-        assertThrows(BookingOverlappingException.class, () -> bookingService.save(fourthBooking));
-        //invalid room id
-        assertThrows(ItemNotFoundException.class, () -> bookingService.save(thirdBooking));
-        // booking is null
+        assertThrows(BookingOverlappingException.class, () -> bookingService.save(booking));
+    }
+
+    @Test
+    public void createBookingNullCheck() {
+        //given
+
+        //when and then
         assertThrows(InvalidArgumentException.class, () -> bookingService.save(null));
     }
 
@@ -279,32 +277,26 @@ public class BookingServiceTest {
     public void updateBookingByDatesSuccessfully() {
         // given
         createBookings();
-        int bookingId = 1;
         LocalDate updateFrom = LocalDate.of(2019, 8, 24);
         LocalDate updateTo = LocalDate.of(2019, 8, 28);
 
         //when
-        Booking findBooking = bookingService.updateBookingByDates(bookingId, updateFrom, updateTo);
+        Booking updatedBookingByDates = bookingService.updateBookingByDates(firstBooking.getBookingId(), updateFrom, updateTo);
 
-        assertEquals(updateFrom, findBooking.getFrom());
-        assertEquals(updateTo, findBooking.getTo());
+        assertEquals(updateFrom, updatedBookingByDates.getFrom());
+        assertEquals(updateTo, updatedBookingByDates.getTo());
     }
 
     @Test
-    public void updateBookingByDatesUnsuccessfully() {
+    public void updateBookingByDatesThrowsExceptionBecauseDatesAreOverlapped() {
         // given
         createBookings();
-        int bookingId = 1, guestId = 1, numOfPeople = 2, roomId = 1;
-        LocalDate from = LocalDate.of(2019, 8, 19);
-        LocalDate to = LocalDate.of(2019, 8, 27);
-        Booking booking = new Booking(bookingId, guestId, roomId, numOfPeople, from, to);
-        bookingService.save(booking);
-
-        LocalDate updateFrom = LocalDate.of(2019, 8, 22);
-        LocalDate updateTo = LocalDate.of(2019, 8, 26);
+        LocalDate updateFrom = LocalDate.of(2019, 9, 16);
+        LocalDate updateTo = LocalDate.of(2019, 9, 25);
 
         //when and then
-        assertThrows(BookingOverlappingException.class, () -> bookingService.updateBookingByDates(bookingId, updateFrom, updateTo));
+        assertThrows(BookingOverlappingException.class,
+                () -> bookingService.updateBookingByDates(secondBooking.getBookingId(), updateFrom, updateTo));
     }
 
     @AfterEach

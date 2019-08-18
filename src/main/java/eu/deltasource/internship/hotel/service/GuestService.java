@@ -84,9 +84,6 @@ public class GuestService {
      * @return list of all existing guests
      */
     public List<Guest> saveAll(Guest... guests) {
-        if (guests == null) {
-            throw new InvalidArgumentException("Invalid guests");
-        }
         validateGuestList(Arrays.asList(guests));
         guestRepository.saveAll(guests);
         return findAll();

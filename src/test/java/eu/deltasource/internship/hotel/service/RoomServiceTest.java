@@ -12,24 +12,22 @@ import org.junit.jupiter.api.BeforeEach;
 import eu.deltasource.internship.hotel.domain.commodity.Bed;
 import eu.deltasource.internship.hotel.domain.commodity.BedType;
 
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 import static eu.deltasource.internship.hotel.domain.commodity.BedType.*;
 import static org.junit.jupiter.api.Assertions.*;
+import static org.hamcrest.MatcherAssert.*;
+import static org.hamcrest.Matchers.*;
 
 public class RoomServiceTest {
 
-    private RoomRepository roomRepository;
     private RoomService roomService;
     private Room singleRoom;
     private Room kingSizeRoom;
 
     @BeforeEach
     public void setUp() {
-        roomRepository = new RoomRepository();
+        RoomRepository roomRepository = new RoomRepository();
         roomService = new RoomService(roomRepository);
     }
 
@@ -44,8 +42,6 @@ public class RoomServiceTest {
 
         //then
         assertEquals(singleRoom, searchedRoom);
-        assertEquals(singleRoom.getRoomCapacity(), searchedRoom.getRoomCapacity());
-        assertEquals(singleRoom.getCommodities(), searchedRoom.getCommodities());
     }
 
     @Test
@@ -68,15 +64,14 @@ public class RoomServiceTest {
         List<Room> rooms = roomService.findAll();
 
         //then
-        assertEquals(numberOfRooms, rooms.size());
-        assertTrue(rooms.contains(singleRoom));
-        assertTrue(rooms.contains(kingSizeRoom));
+        assertThat(rooms, hasSize(numberOfRooms));
+        assertThat(rooms, containsInAnyOrder(kingSizeRoom, singleRoom));
     }
 
     @Test
     public void createRoomSuccessfully() {
         //given
-        Set<AbstractCommodity> commodities = new HashSet<>(Arrays.asList(new Bed(DOUBLE)));
+        Set<AbstractCommodity> commodities = new HashSet<>(Arrays.asList(new Bed(DOUBLE), new Shower()));
         int roomId = 1;
         Room doubleBedRoom = new Room(roomId, commodities);
 
@@ -88,23 +83,27 @@ public class RoomServiceTest {
     }
 
     @Test
-    public void createRoomUnsuccessfully() {
+    public void createRoomThrowsExceptionWhenTheSetIsNullOrIsEmpty() {
         //given
         Set<AbstractCommodity> invalidSet = null;
-        Set<AbstractCommodity> doubleSet = new HashSet<>();
+        Set<AbstractCommodity> emptySet = new HashSet<>();
         int roomId = 3;
-        Room kingSizeRoom = null;
 
         //when and then
         // empty set of commodities
         assertThrows(FailedInitializationException.class,
-                () -> roomService.save(new Room(roomId, doubleSet)));
-        //the room is null
-        assertThrows(InvalidArgumentException.class,
-                () -> roomService.save((kingSizeRoom)));
+                () -> roomService.save(new Room(roomId, emptySet)));
         //invalid commodities
         assertThrows(FailedInitializationException.class,
                 () -> roomService.save(new Room(roomId, invalidSet)));
+    }
+
+    @Test
+    public void createRoomNullCheck() {
+        //given
+
+        //when and then
+        assertThrows(InvalidArgumentException.class, () -> roomService.save(null));
     }
 
     @Test
@@ -134,6 +133,7 @@ public class RoomServiceTest {
     @Test
     public void deleteExistingRoom() {
         //given
+        int roomId = 2;
         createRooms();
 
         //when
@@ -141,7 +141,7 @@ public class RoomServiceTest {
 
         //then
         assertTrue(actualResult);
-        assertThrows(ItemNotFoundException.class, () -> roomService.findById(2));
+        assertThrows(ItemNotFoundException.class, () -> roomService.findById(roomId));
     }
 
     @Test
@@ -161,7 +161,8 @@ public class RoomServiceTest {
     public void updateRoomSuccessfully() {
         // given
         createRooms();
-        Set<AbstractCommodity> updatedCommodities = new HashSet<>(Arrays.asList(new Bed(KING_SIZE), new Toilet()));
+        Set<AbstractCommodity> updatedCommodities = new HashSet<>
+                (Arrays.asList(new Bed(KING_SIZE), new Toilet()));
         int roomId = 2;
         Room updatedRoom = new Room(roomId, updatedCommodities);
 
@@ -169,11 +170,11 @@ public class RoomServiceTest {
         Room expectedRoom = roomService.updateRoom(updatedRoom);
 
         //then
-        assertEquals(roomService.findById(roomId).getCommodities(), expectedRoom.getCommodities());
+        assertEquals(updatedRoom.getCommodities(), expectedRoom.getCommodities());
     }
 
     @Test
-    public void updateRoomUnsuccessfully() {
+    public void updateRoomThrowsExceptionWhenRoomHasNullCommodityOrUpdatesNonExistentRoom() {
         // given
         createRooms();
         Set<AbstractCommodity> updatedCommodities = new HashSet<>(Arrays.asList(new Bed(DOUBLE), new Shower()));
@@ -181,55 +182,53 @@ public class RoomServiceTest {
         int roomId = 8;
         Room updatedRoom = new Room(roomId, updatedCommodities);
         Room updatedRoomHasNullCommodity = new Room(1, updatedCommoditiesNull);
-        Room newRoom = null;
 
         // when and then
         //invalid room id
         assertThrows(ItemNotFoundException.class, () -> roomService.updateRoom(updatedRoom));
-        // room is null
-        assertThrows(InvalidArgumentException.class, () -> roomService.updateRoom(newRoom));
         // room with null commodity
         assertThrows(InvalidArgumentException.class, () -> roomService.updateRoom(updatedRoomHasNullCommodity));
     }
 
     @Test
-    public void savedRoomsUnsuccessfully() {
+    public void saveRoomsVarargsThrowsExceptionWhenContainsNullRoom() {
         //given
-        Room[] rooms = null;
         Set<AbstractCommodity> commodities = new HashSet<>(Arrays.asList(new Bed(KING_SIZE), new Shower()));
         int roomId = 3;
         Room kingSizeRoom = new Room(roomId, commodities);
         Room invalidRoom = null;
 
         // when and then
-        //rooms reference is null
-        assertThrows(InvalidArgumentException.class, () -> roomService.saveAll(rooms));
-        //one of the rooms is null
         assertThrows(InvalidArgumentException.class, () -> roomService.saveAll(kingSizeRoom, invalidRoom));
     }
 
     @Test
-    public void saveRoomsSuccessfully() {
+    public void saveListOfRoomSuccessfully() {
         //given
-        Set<AbstractCommodity> firstRoomCommodities = new HashSet<>(Arrays.asList(new Bed(DOUBLE), new Toilet()));
-        Set<AbstractCommodity> secondRoomCommodities = new HashSet<>(Arrays.asList(new Bed(SINGLE), new Bed(KING_SIZE)));
         int roomId = 1;
-        int expectedSize = 2;
-        Room kingSizeRoom = new Room(roomId, firstRoomCommodities);
-        Room singleKingSizeRoom = new Room(roomId+1, secondRoomCommodities);
+        Set<AbstractCommodity> commodities = new HashSet<>(Arrays.asList(new Bed(KING_SIZE), new Shower()));
+        Room kingSizeRoom = new Room(roomId, commodities);
+        List<Room> rooms = new ArrayList<>();
+        rooms.add(kingSizeRoom);
 
-        //when
-        roomService.saveAll(kingSizeRoom, singleKingSizeRoom);
+        // when
+        roomService.saveAll(rooms);
 
         //then
-        assertEquals(expectedSize, roomService.findAll().size());
-        assertTrue(roomService.findAll().contains(kingSizeRoom));
-        assertTrue(roomService.findAll().contains(singleKingSizeRoom));
+        assertThat(rooms, hasSize(1));
+    }
+
+    @Test
+    public void saveListOfRoomThrowsExceptionWhenIsEmpty() {
+        //given
+        List<Room> rooms = new ArrayList<>();
+
+        // when and then
+        assertThrows(InvalidArgumentException.class, () -> roomService.saveAll(rooms));
     }
 
     @AfterEach
     public void tearDown() {
-        roomRepository = null;
         roomService = null;
     }
 

@@ -31,24 +31,19 @@ public class GuestServiceTest {
     @Test
     public void getGuestByExistingId() {
         //given
-        firstGuest = new Guest(1, "Maria", "Johnson", Gender.FEMALE);
-        guestService.save(firstGuest);
+        createGuest();
 
         //when
         Guest searchedGuest = guestService.findById(firstGuest.getGuestId());
 
         //then
         assertEquals(firstGuest, searchedGuest);
-        assertEquals(firstGuest.getFirstName(), searchedGuest.getFirstName());
-        assertEquals(firstGuest.getLastName(), searchedGuest.getLastName());
-        assertEquals(firstGuest.getGender(), searchedGuest.getGender());
     }
 
     @Test
     public void getGuestByIdThatDoesNotExist() {
         //given
-        firstGuest = new Guest(1, "Maria", "Johnson", Gender.FEMALE);
-        guestService.save(firstGuest);
+        createGuest();
         int invalidId = firstGuest.getGuestId() + 1;
 
         // when and then
@@ -58,37 +53,42 @@ public class GuestServiceTest {
     @Test
     public void updateGuestSuccessfully() {
         //given
-        firstGuest = new Guest(1, "Maria", "Johnson", Gender.FEMALE);
-        guestService.save(firstGuest);
-        Guest updatedGuest = new Guest(firstGuest.getGuestId(), "George", "Jordan", Gender.MALE);
+        createGuest();
+        String firstName = "George";
+        String lastName = "Jordan";
+        Gender gender = Gender.MALE;
+        Guest updatedGuest = new Guest(firstGuest.getGuestId(), firstName, lastName, gender);
 
         //when
         Guest actualGuest = guestService.update(updatedGuest);
-        assertEquals(updatedGuest, actualGuest);
 
         //then
-        assertEquals(updatedGuest.getFirstName(), actualGuest.getFirstName());
-        assertEquals(updatedGuest.getLastName(), actualGuest.getLastName());
-        assertEquals(Gender.MALE, actualGuest.getGender());
+        assertEquals(updatedGuest, actualGuest);
     }
 
     @Test
     public void updateGuestUnsuccessfully() {
         //given
-        firstGuest = new Guest(1, "Maria", "Johnson", Gender.FEMALE);
-        guestService.save(firstGuest);
-        Guest updatedGuest = new Guest(firstGuest.getGuestId() + 1, "Martin", "Miller", Gender.MALE);
+        createGuest();
+        int invalidId = firstGuest.getGuestId() + 1;
+        Guest updatedGuest = new Guest(invalidId, "Martin", "Miller", Gender.MALE);
 
         //when and then
         assertThrows(ItemNotFoundException.class, () -> guestService.update(updatedGuest));
+    }
+
+    @Test
+    public void updateGuestNullCheck() {
+        //given
+
+        //when and then
         assertThrows(InvalidArgumentException.class, () -> guestService.update(null));
     }
 
     @Test
     public void deleteGuestByExistingId() {
         //given
-        firstGuest = new Guest(1, "Maria", "Johnson", Gender.FEMALE);
-        guestService.save(firstGuest);
+        createGuest();
 
         //when and then
         assertTrue(guestService.deleteById(firstGuest.getGuestId()));
@@ -97,21 +97,20 @@ public class GuestServiceTest {
     @Test
     public void deleteGuestByIdThatDoesNotExist() {
         //given
-        firstGuest = new Guest(1, "Maria", "Johnson", Gender.FEMALE);
-        guestService.save(firstGuest);
+        createGuest();
+        int invalidId = firstGuest.getGuestId() + 1;
 
         //when and then
-        assertThrows(ItemNotFoundException.class, () -> guestService.deleteById(firstGuest.getGuestId() + 1));
+        assertThrows(ItemNotFoundException.class, () -> guestService.deleteById(invalidId));
     }
 
     @Test
     public void deleteExistingGuest() {
         //given
-        firstGuest = new Guest(1, "Maria", "Johnson", Gender.FEMALE);
-        guestService.save(firstGuest);
+        createGuest();
 
         //when
-        assertTrue(guestService.delete(firstGuest));
+        guestService.delete(firstGuest);
 
         //then
         assertFalse(guestService.findAll().contains(firstGuest));
@@ -120,13 +119,25 @@ public class GuestServiceTest {
     @Test
     public void deleteGuestThatDoesNotExist() {
         //given
-        firstGuest = new Guest(1, "Maria", "Johnson", Gender.FEMALE);
-        guestService.save(firstGuest);
+        createGuest();
+        int invalidId = firstGuest.getGuestId() + 1;
+        String firstName = "Mike";
+        String lastName = "Miller";
+        Gender gender = Gender.MALE;
+        Guest guest = new Guest(invalidId, firstName, lastName, gender);
 
         //when and then
-        assertThrows(ItemNotFoundException.class,
-                () -> guestService.delete(new Guest(firstGuest.getGuestId() + 1, "Gergana", "Todorova", Gender.FEMALE)));
+        assertThrows(ItemNotFoundException.class, () -> guestService.delete(guest));
     }
+
+    @Test
+    public void deleteGuestNullCheck() {
+        //given
+
+        //when and then
+        assertThrows(InvalidArgumentException.class, () -> guestService.delete(null));
+    }
+
 
     @Test
     public void deleteAllExistingGuests() {
@@ -148,49 +159,65 @@ public class GuestServiceTest {
         firstGuest = new Guest(1, "Maria", "Johnson", Gender.FEMALE);
         Guest secondGuest = new Guest(2, "Martin", "Dyson", Gender.MALE);
         Guest thirdGuest = new Guest(3, "Joe", "Cunning", Gender.MALE);
+        guestService.saveAll(firstGuest, secondGuest, thirdGuest);
+        int expectedSize = 3;
 
         //when
-        guestService.saveAll(firstGuest, secondGuest, thirdGuest);
         List<Guest> guests = guestService.findAll();
 
         //then
-        assertThat(guests, hasSize(3));
+        assertThat(guests, hasSize(expectedSize));
         assertThat(guests, containsInAnyOrder(firstGuest, secondGuest, thirdGuest));
     }
 
     @Test
     public void findAllExistingGuestsEmptyList() {
         //given
-        firstGuest = new Guest(1, "Maria", "Johnson", Gender.FEMALE);
-        Guest secondGuest = new Guest(2, "Martin", "Dyson", Gender.MALE);
-        Guest thirdGuest = new Guest(3, "Joe", "Cunning", Gender.MALE);
+
+        List<Guest> guests = guestService.findAll();
 
         //when and then
-        assertTrue(guestService.findAll().isEmpty());
+        assertTrue(guests.isEmpty());
     }
 
     @Test
     public void createGuestUnsuccessfully() {
         //given
+        int guestId = 1;
+        String emptyFirstName = "";
+        String validFirstName = "Pete";
+        String lastName = "Miller";
+        Gender gender = Gender.MALE;
+
+        //when and then
+        assertThrows(FailedInitializationException.class,
+                () -> guestService.save(new Guest(guestId, emptyFirstName, lastName, gender)));
+        assertThrows(FailedInitializationException.class,
+                () -> guestService.save(new Guest(guestId, validFirstName, null, gender)));
+    }
+
+    @Test
+    public void createGuestNullCheck() {
+        //given
 
         //when and then
         assertThrows(InvalidArgumentException.class, () -> guestService.save(null));
-        assertThrows(FailedInitializationException.class, () -> guestService.save(new Guest(1, null, null, Gender.MALE)));
     }
 
     @Test
     public void createGuestSuccessfully() {
         //given
-        firstGuest = new Guest(1, "Maria", "Johnson", Gender.FEMALE);
-        Guest newGuest = new Guest(2, "Mike", "Peterson", Gender.MALE);
+        int id = 1;
+        String firstName = "Maria";
+        String lastName = "Johnson";
+        Gender gender = Gender.FEMALE;
+        firstGuest = new Guest(id, firstName, lastName, gender);
 
         //when
         guestService.save(firstGuest);
-        guestService.save(newGuest);
 
         //then
         assertEquals(firstGuest, guestService.findById(1));
-        assertEquals(newGuest, guestService.findById(2));
     }
 
     @Test
@@ -216,5 +243,15 @@ public class GuestServiceTest {
     @AfterEach
     public void tearDown() {
         guestService = null;
+    }
+
+    private void createGuest() {
+        int id = 1;
+        String firstName = "Maria";
+        String lastName = "Johnson";
+        Gender gender = Gender.FEMALE;
+
+        firstGuest = new Guest(id, firstName, lastName, gender);
+        guestService.save(firstGuest);
     }
 }
