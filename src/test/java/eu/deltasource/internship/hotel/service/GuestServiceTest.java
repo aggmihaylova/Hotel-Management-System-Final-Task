@@ -1,11 +1,10 @@
+
 package eu.deltasource.internship.hotel.service;
 
 
 import eu.deltasource.internship.hotel.domain.Gender;
 import eu.deltasource.internship.hotel.domain.Guest;
-import eu.deltasource.internship.hotel.exception.InvalidArgumentException;
-import eu.deltasource.internship.hotel.exception.FailedInitializationException;
-import eu.deltasource.internship.hotel.exception.ItemNotFoundException;
+import eu.deltasource.internship.hotel.exception.*;
 import eu.deltasource.internship.hotel.repository.GuestRepository;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -41,7 +40,7 @@ public class GuestServiceTest {
     }
 
     @Test
-    public void getGuestByIdThatDoesNotExist() {
+    public void getGuestByIdThrowsExceptionBecauseGuestIdDoesNotExist() {
         //given
         createGuest();
         int invalidId = firstGuest.getGuestId() + 1;
@@ -67,7 +66,7 @@ public class GuestServiceTest {
     }
 
     @Test
-    public void updateGuestUnsuccessfully() {
+    public void updateGuestThrowsExceptionBecauseGuestDoesNotExist() {
         //given
         createGuest();
         int invalidId = firstGuest.getGuestId() + 1;
@@ -95,7 +94,7 @@ public class GuestServiceTest {
     }
 
     @Test
-    public void deleteGuestByIdThatDoesNotExist() {
+    public void deleteGuestByIdThrowsExceptionBecauseGuestIdDoesNotExist() {
         //given
         createGuest();
         int invalidId = firstGuest.getGuestId() + 1;
@@ -117,7 +116,7 @@ public class GuestServiceTest {
     }
 
     @Test
-    public void deleteGuestThatDoesNotExist() {
+    public void deleteGuestThrowsExceptionBecauseGuestDoesNotExist() {
         //given
         createGuest();
         int invalidId = firstGuest.getGuestId() + 1;
@@ -171,17 +170,7 @@ public class GuestServiceTest {
     }
 
     @Test
-    public void findAllExistingGuestsEmptyList() {
-        //given
-
-        List<Guest> guests = guestService.findAll();
-
-        //when and then
-        assertTrue(guests.isEmpty());
-    }
-
-    @Test
-    public void createGuestUnsuccessfully() {
+    public void createGuestThrowsExceptionBecauseNullOrEmptyFields() {
         //given
         int guestId = 1;
         String emptyFirstName = "";

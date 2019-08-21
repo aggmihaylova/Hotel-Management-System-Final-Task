@@ -2,15 +2,11 @@ package eu.deltasource.internship.hotel.service;
 
 import eu.deltasource.internship.hotel.domain.Room;
 import eu.deltasource.internship.hotel.domain.commodity.*;
-import eu.deltasource.internship.hotel.exception.InvalidArgumentException;
-import eu.deltasource.internship.hotel.exception.FailedInitializationException;
-import eu.deltasource.internship.hotel.exception.ItemNotFoundException;
+import eu.deltasource.internship.hotel.exception.*;
 import eu.deltasource.internship.hotel.repository.RoomRepository;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.BeforeEach;
-import eu.deltasource.internship.hotel.domain.commodity.Bed;
-import eu.deltasource.internship.hotel.domain.commodity.BedType;
 
 import java.util.*;
 
@@ -45,7 +41,7 @@ public class RoomServiceTest {
     }
 
     @Test
-    public void getRoomByIdThatDoesNotExist() {
+    public void getRoomByIdThrowsExceptionBecauseRoomIdDoesNotExist() {
         //given
         createRooms();
         int id = 7;
@@ -121,7 +117,7 @@ public class RoomServiceTest {
     }
 
     @Test
-    public void deleteRoomByIdThatDoesNotExist() {
+    public void deleteRoomByIdThrowsExceptionBecauseRoomIdDoesNotExist() {
         //given
         createRooms();
         int invalidId = 12;

@@ -2,9 +2,7 @@ package eu.deltasource.internship.hotel.service;
 
 import eu.deltasource.internship.hotel.domain.Booking;
 import eu.deltasource.internship.hotel.domain.Room;
-import eu.deltasource.internship.hotel.exception.InvalidArgumentException;
-import eu.deltasource.internship.hotel.exception.BookingOverlappingException;
-import eu.deltasource.internship.hotel.exception.ItemNotFoundException;
+import eu.deltasource.internship.hotel.exception.*;
 import eu.deltasource.internship.hotel.repository.BookingRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -18,6 +16,7 @@ import java.util.List;
  */
 @Service
 public class BookingService {
+
     private final BookingRepository bookingRepository;
     private final RoomService roomService;
     private final GuestService guestService;
@@ -66,7 +65,9 @@ public class BookingService {
      */
     public Booking save(Booking booking) {
         validateBooking(booking);
-        validateCreateBookingDatesNotOverlapped(booking.getFrom(), booking.getTo(), booking.getRoomId());
+        if (areBookingDatesOverlapped(booking.getFrom(), booking.getTo(), booking.getRoomId())) {
+            throw new BookingOverlappingException("Overlapping dates! ");
+        }
         bookingRepository.save(booking);
         return findById(bookingRepository.count());
     }
@@ -119,8 +120,6 @@ public class BookingService {
     }
 
     /**
-     * UNDER CONSTRUCTION
-     *
      * Updates booking by dates
      *
      * @param bookingId id of the booking that is going be updated
@@ -132,7 +131,7 @@ public class BookingService {
         validateDates(from, to);
         Booking booking = findById(bookingId);
 
-        if (!areBookingUpdateDatesOverlapped(from, to, booking.getRoomId(), bookingId)) {
+        if (areBookingUpdateDatesOverlapped(from, to, booking.getRoomId(), bookingId)) {
             throw new BookingOverlappingException("Overlapping dates!");
         }
         booking.setBookingDates(from, to);
@@ -174,23 +173,20 @@ public class BookingService {
         if (booking.getGuestId() != findById(bookingId).getGuestId()) {
             throw new InvalidArgumentException("You are not allowed to change guest id!");
         }
-        if (!areBookingUpdateDatesOverlapped(booking.getFrom(), booking.getTo(), booking.getRoomId(), bookingId)) {
+        if (areBookingUpdateDatesOverlapped(booking.getFrom(), booking.getTo(), booking.getRoomId(), bookingId)) {
             throw new BookingOverlappingException("The room is already booked for this period!");
         }
     }
 
-    private boolean areBookingUpdateDatesOverlapped(LocalDate from, LocalDate to,
-                                                    int roomId, int bookingId, int... idToIgnore) {
+    private boolean areBookingUpdateDatesOverlapped(LocalDate from, LocalDate to, int roomId, int bookingId) {
+        Booking bookingToBeUpdated = findById(bookingId);
+        if (updateIn(bookingToBeUpdated.getFrom(), bookingToBeUpdated.getTo(), from, to))
+            return false;
+
         for (Booking booking : findAll()) {
             if (booking.getRoomId() == roomId) {
-                if (idToIgnore.length > 0 && booking.getBookingId() == idToIgnore[0]) {
-                    continue;
-                }
-                if (bookingId == booking.getBookingId()) {
-                    return (areBookingUpdateDatesOverlapped(from, to, roomId, bookingId, bookingId));
-                }
-                if (!from.isBefore(booking.getTo()) || !to.isAfter(booking.getFrom())) {
-                    continue;
+                if (checkOverlapping(booking.getFrom(), booking.getTo(), from, to)) {
+                    break;
                 }
                 return false;
             }
@@ -199,30 +195,31 @@ public class BookingService {
     }
 
     private void validateBookings(List<Booking> bookings) {
-        if (bookings == null || bookings.isEmpty()) {
-            throw new InvalidArgumentException("Invalid bookings");
+        if (bookings.isEmpty()) {
+            throw new InvalidArgumentException("Empty list of bookings");
         }
         for (Booking booking : bookings) {
             validateBooking(booking);
+            if (areBookingDatesOverlapped(booking.getFrom(), booking.getTo(), booking.getRoomId())) {
+                throw new BookingOverlappingException("Dates are overlapped");
+            }
         }
     }
 
     private void validateBooking(Booking booking) {
-        if (booking == null || !areValidBookingFields(booking)) {
-            throw new InvalidArgumentException("Invalid Booking");
+        if (booking == null || !areBookingFieldsValid(booking)) {
+            throw new InvalidArgumentException("Invalid booking");
         }
     }
 
-    private boolean areValidBookingFields(Booking booking) {
-        int roomId = booking.getRoomId();
+    private boolean areBookingFieldsValid(Booking booking) {
         int numberOfPeople = booking.getNumberOfPeople();
-        int guestId = booking.getGuestId();
 
         validateDates(booking.getFrom(), booking.getTo());
 
-        guestService.findById(guestId);
+        guestService.findById(booking.getGuestId());
 
-        Room foundExistingRoom = roomService.findById(roomId);
+        Room foundExistingRoom = roomService.findById(booking.getRoomId());
 
         return foundExistingRoom.getRoomCapacity() >= numberOfPeople;
     }
@@ -233,11 +230,22 @@ public class BookingService {
         }
     }
 
-    private void validateCreateBookingDatesNotOverlapped(LocalDate from, LocalDate to, int roomId) {
+    private boolean areBookingDatesOverlapped(LocalDate from, LocalDate to, int roomId) {
         for (Booking book : findAll()) {
-            if (book.getRoomId() == roomId && (!(to.isBefore(book.getFrom()) || from.isAfter(book.getTo())))) {
-                throw new BookingOverlappingException("The room is already booked for this period!");
+            if (book.getRoomId() == roomId && checkOverlapping(book.getFrom(), book.getTo(), from, to)) {
+                return true;
             }
         }
+        return false;
+    }
+
+    private boolean checkOverlapping(LocalDate bookedFrom, LocalDate bookedTo, LocalDate from, LocalDate to) {
+        return !(bookedFrom.isAfter(to) || (bookedFrom.isEqual(to))
+                || bookedTo.isBefore(from) || bookedTo.isEqual(from));
+    }
+
+    private boolean updateIn(LocalDate bookedFrom, LocalDate bookedTo, LocalDate from, LocalDate to) {
+        return ((bookedFrom.isAfter(from) || bookedFrom.isEqual(from)) &&
+                bookedTo.isAfter(to) || bookedTo.isEqual(to));
     }
 }

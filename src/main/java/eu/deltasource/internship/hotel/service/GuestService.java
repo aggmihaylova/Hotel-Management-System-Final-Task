@@ -133,8 +133,8 @@ public class GuestService {
     }
 
     private void validateGuestList(List<Guest> guests) {
-        if (guests == null || guests.isEmpty()) {
-            throw new InvalidArgumentException("Invalid list of guests!");
+        if (guests.isEmpty()) {
+            throw new InvalidArgumentException("Empty list of guests!");
         }
         for (Guest guest : guests) {
             validateGuest(guest);

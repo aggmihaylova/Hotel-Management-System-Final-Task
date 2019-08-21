@@ -1,23 +1,15 @@
 package eu.deltasource.internship.hotel.service;
 
-import eu.deltasource.internship.hotel.domain.Booking;
-import eu.deltasource.internship.hotel.domain.Gender;
-import eu.deltasource.internship.hotel.domain.Guest;
-import eu.deltasource.internship.hotel.domain.Room;
+import eu.deltasource.internship.hotel.domain.*;
 import eu.deltasource.internship.hotel.domain.commodity.*;
-import eu.deltasource.internship.hotel.exception.InvalidArgumentException;
-import eu.deltasource.internship.hotel.exception.BookingOverlappingException;
-import eu.deltasource.internship.hotel.domain.commodity.Bed;
-import eu.deltasource.internship.hotel.domain.commodity.BedType;
-import eu.deltasource.internship.hotel.exception.ItemNotFoundException;
-import eu.deltasource.internship.hotel.repository.BookingRepository;
-import eu.deltasource.internship.hotel.repository.GuestRepository;
-import eu.deltasource.internship.hotel.repository.RoomRepository;
+import eu.deltasource.internship.hotel.exception.*;
+import eu.deltasource.internship.hotel.repository.*;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
+import java.time.Month;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
@@ -62,10 +54,10 @@ public class BookingServiceTest {
     }
 
     @Test
-    public void findBookingByIdThatDoesNotExist() {
+    public void findBookingByIdBecauseBookingIdDoesNotExist() {
         //given
         createBookings();
-        int bookingId = -5;
+        int bookingId = secondBooking.getBookingId() + 1;
 
         //when and then
         assertThrows(ItemNotFoundException.class, () -> bookingService.findById(bookingId));
@@ -75,7 +67,7 @@ public class BookingServiceTest {
     public void deleteByExistingId() {
         //given
         createBookings();
-        int bookingId = 2;
+        int bookingId = secondBooking.getBookingId();
 
         //when
         boolean actualResult = bookingService.deleteById(bookingId);
@@ -86,10 +78,10 @@ public class BookingServiceTest {
     }
 
     @Test
-    public void deleteByIdThatDoesNotExist() {
+    public void deleteByIdThrowsExceptionBecauseBookingIdDoesNotExist() {
         //given
         createBookings();
-        int bookingId = 56;
+        int bookingId = secondBooking.getBookingId() + 1;
 
         //when and then
         assertThrows(ItemNotFoundException.class, () -> bookingService.deleteById(bookingId));
@@ -110,12 +102,16 @@ public class BookingServiceTest {
     }
 
     @Test
-    public void deleteBookingThatDoesNotExist() {
+    public void deleteBookingThrowsExceptionBecauseBookingDoesNotExist() {
         //given
         createBookings();
-        LocalDate thirdFrom = LocalDate.of(2019, 8, 22);
-        LocalDate thirdTo = LocalDate.of(2019, 8, 26);
-        Booking thirdBooking = new Booking(3, 1, 1, 1, thirdFrom, thirdTo);
+        int bookingId = 3;
+        int guestId = 1;
+        int roomId = 1;
+        int numberOfPeople = 1;
+        LocalDate thirdFrom = LocalDate.of(2019, Month.NOVEMBER, 22);
+        LocalDate thirdTo = LocalDate.of(2019, Month.NOVEMBER, 26);
+        Booking thirdBooking = new Booking(bookingId, guestId, roomId, numberOfPeople, thirdFrom, thirdTo);
 
         //when and then
         assertThrows(ItemNotFoundException.class, () -> bookingService.delete(thirdBooking));
@@ -141,9 +137,9 @@ public class BookingServiceTest {
         int guestId = 1;
         int roomId = 1;
         int numberOfPeople = 2;
-        LocalDate thirdFrom = LocalDate.of(2019, 10, 3);
-        LocalDate thirdTo = LocalDate.of(2019, 10, 8);
-        Booking newBooking = new Booking(bookingId, guestId, roomId, numberOfPeople, thirdFrom, thirdTo);
+        LocalDate from = LocalDate.of(2019, Month.OCTOBER, 17);
+        LocalDate to = LocalDate.of(2019, Month.OCTOBER, 22);
+        Booking newBooking = new Booking(bookingId, guestId, roomId, numberOfPeople, from, to);
         int expectedBookingsSize = 3;
 
         // when
@@ -155,12 +151,16 @@ public class BookingServiceTest {
     }
 
     @Test
-    public void createBookingUnsuccessfully() {
+    public void createBookingThrowsExceptionBecauseDatesAreOverlapped() {
         //given
         createBookings();
-        LocalDate from = LocalDate.of(2019, 10, 13);
-        LocalDate to = LocalDate.of(2019, 10, 22);
-        Booking booking = new Booking(1, 1, 1, 1, from, to);
+        int bookingId = 1;
+        int guestId = 1;
+        int roomId = 1;
+        int numberOfPeople = 1;
+        LocalDate from = LocalDate.of(2019, Month.OCTOBER, 15);
+        LocalDate to = LocalDate.of(2019, Month.OCTOBER, 22);
+        Booking booking = new Booking(bookingId, guestId, roomId, numberOfPeople, from, to);
 
         // when and then
         assertThrows(BookingOverlappingException.class, () -> bookingService.save(booking));
@@ -177,23 +177,19 @@ public class BookingServiceTest {
     @Test
     public void saveAllBookingUnsuccessfully() {
         //given
-        BookingRepository bookingRepository = new BookingRepository();
-        BookingService bookingService = new BookingService(bookingRepository, roomService, guestService);
-        int firstBookingId = 1, firstGuestId = 2, firstRoomId = 3, firstNumOfPeople = 12;
-        int secondBookingId = 2, secondGuestId = 1, secondRoomId = 7, secondNumOfPeople = 1;
+        int firstBookingId = 1;
+        int firstGuestId = 2;
+        int firstRoomId = 3;
+        int firstNumOfPeople = 12;
         LocalDate firstFrom = LocalDate.of(2019, 12, 3);
         LocalDate firstTo = LocalDate.of(2019, 12, 6);
-        LocalDate secondFrom = LocalDate.of(2019, 12, 13);
-        LocalDate secondTo = LocalDate.of(2019, 12, 16);
         Booking firstBooking = new Booking
                 (firstBookingId, firstGuestId, firstRoomId, firstNumOfPeople, firstFrom, firstTo);
-        Booking secondBooking = new Booking
-                (secondBookingId, secondGuestId, secondRoomId, secondNumOfPeople, secondFrom, secondTo);
 
         //when and then
         //not enough capacity for the first booking and invalid room id for the second
         assertThrows(ItemNotFoundException.class,
-                () -> bookingService.saveAll(firstBooking, secondBooking));
+                () -> bookingService.saveAll(firstBooking, null));
     }
 
     @Test
@@ -214,9 +210,12 @@ public class BookingServiceTest {
         //given
         createBookings();
         // from double to king size
-        int numberOfPeople = 2, roomId = 3, bookingId = 1, guestId = 1;
-        LocalDate from = LocalDate.of(2019, 9, 15);
-        LocalDate to = LocalDate.of(2019, 9, 18);
+        int numberOfPeople = 1;
+        int roomId = 2;
+        int bookingId = 1;
+        int guestId = 1;
+        LocalDate from = LocalDate.of(2019, Month.SEPTEMBER, 15);
+        LocalDate to = LocalDate.of(2019, Month.SEPTEMBER, 18);
         Booking booking = new Booking(bookingId, guestId, roomId, numberOfPeople, from, to);
 
         //when
@@ -232,35 +231,40 @@ public class BookingServiceTest {
         //given
         createBookings();
         //create a third booking for the second room
-        int numberOfPeople = 1, roomId = 2, bookingId = 3, invalidBookingId = 12, guestId = 2;
-        LocalDate fromDate = LocalDate.of(2019, 9, 22);
-        LocalDate toDate = LocalDate.of(2019, 9, 27);
+        int numberOfPeople = 1;
+        int roomId = 2;
+        int bookingId = 3;
+        int invalidBookingId = 12;
+        int guestId = 2;
+        LocalDate fromDate = LocalDate.of(2019, Month.SEPTEMBER, 22);
+        LocalDate toDate = LocalDate.of(2019, Month.SEPTEMBER, 27);
         Booking thirdBooking = new Booking(bookingId, guestId, roomId, numberOfPeople, fromDate, toDate);
         bookingService.save(thirdBooking);
 
-        LocalDate from = LocalDate.of(2019, 9, 13);
-        LocalDate to = LocalDate.of(2019, 9, 24);
+        LocalDate from = LocalDate.of(2019, Month.SEPTEMBER, 13);
+        LocalDate to = LocalDate.of(2019, Month.SEPTEMBER, 24);
         Booking updatedBooking = new Booking(bookingId, guestId, roomId, numberOfPeople, from, to);
 
         //when and then
         // overlapping
         assertThrows(BookingOverlappingException.class,
-                () -> bookingService.updateBooking(3, updatedBooking));
+                () -> bookingService.updateBooking(bookingId, updatedBooking));
         // invalid room id
         assertThrows(ItemNotFoundException.class,
                 () -> bookingService.updateBooking(invalidBookingId, updatedBooking));
-
     }
 
     @Test
-    public void updateBookingByNumOfPeopleSuccessfullyAndUnsuccessfully() {
+    public void updateBookingByNumOfPeopleSuccessfully() {
         //given
         createBookings();
-        int bookingId = 1, guestId = 1, numOfPeople = 1, roomId = 1;
-        LocalDate from = LocalDate.of(2019, 9, 15);
-        LocalDate to = LocalDate.of(2019, 9, 18);
+        int bookingId = 1;
+        int guestId = 1;
+        int numOfPeople = 1;
+        int roomId = 1;
+        LocalDate from = LocalDate.of(2019, Month.SEPTEMBER, 15);
+        LocalDate to = LocalDate.of(2019, Month.SEPTEMBER, 18);
         Booking booking = new Booking(bookingId, guestId, roomId, numOfPeople, from, to);
-        Booking invalidBooking = new Booking(bookingId, guestId, roomId, 12, from, to);
 
         //when
         bookingService.updateBooking(bookingId, booking);
@@ -268,20 +272,18 @@ public class BookingServiceTest {
 
         //then
         assertEquals(booking.getNumberOfPeople(), updatedBooking.getNumberOfPeople());
-        // no room with such capacity
-        assertThrows(ItemNotFoundException.class,
-                () -> bookingService.updateBooking(bookingId, invalidBooking));
     }
 
     @Test
     public void updateBookingByDatesSuccessfully() {
         // given
         createBookings();
-        LocalDate updateFrom = LocalDate.of(2019, 8, 24);
-        LocalDate updateTo = LocalDate.of(2019, 8, 28);
+        LocalDate updateFrom = LocalDate.of(2019, Month.AUGUST, 24);
+        LocalDate updateTo = LocalDate.of(2019, Month.AUGUST, 28);
 
         //when
-        Booking updatedBookingByDates = bookingService.updateBookingByDates(firstBooking.getBookingId(), updateFrom, updateTo);
+        Booking updatedBookingByDates =
+                bookingService.updateBookingByDates(firstBooking.getBookingId(), updateFrom, updateTo);
 
         assertEquals(updateFrom, updatedBookingByDates.getFrom());
         assertEquals(updateTo, updatedBookingByDates.getTo());
@@ -291,8 +293,13 @@ public class BookingServiceTest {
     public void updateBookingByDatesThrowsExceptionBecauseDatesAreOverlapped() {
         // given
         createBookings();
-        LocalDate updateFrom = LocalDate.of(2019, 9, 16);
-        LocalDate updateTo = LocalDate.of(2019, 9, 25);
+        LocalDate from = LocalDate.of(2019, Month.SEPTEMBER, 28);
+        LocalDate to = LocalDate.of(2019, Month.SEPTEMBER, 30);
+        Booking booking = new Booking(3, 1, 2, 1, from, to);
+        bookingService.save(booking);
+
+        LocalDate updateFrom = LocalDate.of(2019, Month.SEPTEMBER, 19);
+        LocalDate updateTo = LocalDate.of(2019, Month.SEPTEMBER, 29);
 
         //when and then
         assertThrows(BookingOverlappingException.class,
@@ -321,24 +328,18 @@ public class BookingServiceTest {
         Set<AbstractCommodity> singleSet = new HashSet<>(Arrays.asList
                 (new Bed(SINGLE), new Toilet(), new Shower()));
 
-        // commodities for a double room with king size bed
-        Set<AbstractCommodity> kingSizeSet = new HashSet<>(Arrays.asList
-                (new Bed(BedType.KING_SIZE), new Toilet(), new Shower()));
-
         // create some rooms
         Room doubleRoom = new Room(1, doubleSet);
         Room singleRoom = new Room(2, singleSet);
-        Room kingSizeRoom = new Room(3, kingSizeSet);
-
         // adds the rooms dto the repository which then can be accessed from  RoomService
-        roomService.saveAll(doubleRoom, singleRoom, kingSizeRoom);
+        roomService.saveAll(doubleRoom, singleRoom);
 
-        LocalDate firstFrom = LocalDate.of(2019, 10, 12);
-        LocalDate firstTo = LocalDate.of(2019, 10, 17);
+        LocalDate firstFrom = LocalDate.of(2019, Month.OCTOBER, 12);
+        LocalDate firstTo = LocalDate.of(2019, Month.OCTOBER, 17);
         firstBooking = new Booking(1, 1, 1, 2, firstFrom, firstTo);
 
-        LocalDate secondFrom = LocalDate.of(2019, 9, 18);
-        LocalDate secondTo = LocalDate.of(2019, 9, 21);
+        LocalDate secondFrom = LocalDate.of(2019, Month.SEPTEMBER, 18);
+        LocalDate secondTo = LocalDate.of(2019, Month.SEPTEMBER, 21);
         secondBooking = new Booking(2, 2, 2, 1, secondFrom, secondTo);
 
         // adds the bookings dto the repository which then can be accessed from BookingService
