@@ -137,8 +137,8 @@ public class BookingServiceTest {
         int guestId = 1;
         int roomId = 1;
         int numberOfPeople = 2;
-        LocalDate from = LocalDate.of(2019, Month.OCTOBER, 17);
-        LocalDate to = LocalDate.of(2019, Month.OCTOBER, 22);
+        LocalDate from = LocalDate.of(2019, Month.OCTOBER, 22);
+        LocalDate to = LocalDate.of(2019, Month.OCTOBER, 27);
         Booking newBooking = new Booking(bookingId, guestId, roomId, numberOfPeople, from, to);
         int expectedBookingsSize = 3;
 

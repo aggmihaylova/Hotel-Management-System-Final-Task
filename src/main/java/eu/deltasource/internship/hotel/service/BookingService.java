@@ -65,9 +65,6 @@ public class BookingService {
      */
     public Booking save(Booking booking) {
         validateBooking(booking);
-        if (areBookingDatesOverlapped(booking.getFrom(), booking.getTo(), booking.getRoomId())) {
-            throw new BookingOverlappingException("Overlapping dates! ");
-        }
         bookingRepository.save(booking);
         return findById(bookingRepository.count());
     }
@@ -88,12 +85,9 @@ public class BookingService {
      * Creates one or several bookings
      *
      * @param bookings array of bookings
-     * @return list of all existing bookings
      */
-    public List<Booking> saveAll(Booking... bookings) {
-        validateBookings(Arrays.asList(bookings));
-        bookingRepository.saveAll(bookings);
-        return findAll();
+    public void saveAll(Booking... bookings) {
+        saveAll(Arrays.asList(bookings));
     }
 
     /**
@@ -106,17 +100,15 @@ public class BookingService {
         if (!bookingRepository.existsById(bookingId)) {
             throw new ItemNotFoundException("Booking with id " + bookingId + " does not exist!");
         }
-        validateBooking(newBooking);
 
-        int roomId = newBooking.getRoomId();
-        int guestId = newBooking.getGuestId();
-        int numOfPeople = newBooking.getNumberOfPeople();
-        LocalDate from = newBooking.getFrom();
-        LocalDate to = newBooking.getTo();
-
+        bookingNullCheck(newBooking);
+        validateGuest(newBooking.getGuestId());
+        validateRoom(newBooking.getRoomId(), newBooking.getNumberOfPeople());
         validateUpdateBooking(newBooking, bookingId);
+
         deleteById(bookingId);
-        save(new Booking(bookingId, guestId, roomId, numOfPeople, from, to));
+
+        save(newBooking);
     }
 
     /**
@@ -131,8 +123,8 @@ public class BookingService {
         validateDates(from, to);
         Booking booking = findById(bookingId);
 
-        if (areBookingUpdateDatesOverlapped(from, to, booking.getRoomId(), bookingId)) {
-            throw new BookingOverlappingException("Overlapping dates!");
+        if (areUpdateDatesOverlapped(from, to, booking.getRoomId(), bookingId)) {
+            throw new BookingOverlappingException("Overlapping dates");
         }
         booking.setBookingDates(from, to);
         return bookingRepository.updateDates(booking);
@@ -145,7 +137,7 @@ public class BookingService {
      * @return true is the booking is successfully deleted
      */
     public boolean delete(Booking booking) {
-        validateBooking(booking);
+        bookingNullCheck(booking);
         return bookingRepository.delete(findById(booking.getBookingId()));
     }
 
@@ -171,27 +163,19 @@ public class BookingService {
 
     private void validateUpdateBooking(Booking booking, int bookingId) {
         if (booking.getGuestId() != findById(bookingId).getGuestId()) {
-            throw new InvalidArgumentException("You are not allowed to change guest id!");
+            throw new InvalidArgumentException("You are not allowed to change guest id");
         }
-        if (areBookingUpdateDatesOverlapped(booking.getFrom(), booking.getTo(), booking.getRoomId(), bookingId)) {
+        if (areUpdateDatesOverlapped(booking.getFrom(), booking.getTo(), booking.getRoomId(), bookingId)) {
             throw new BookingOverlappingException("The room is already booked for this period!");
         }
     }
 
-    private boolean areBookingUpdateDatesOverlapped(LocalDate from, LocalDate to, int roomId, int bookingId) {
+    private boolean areUpdateDatesOverlapped(LocalDate from, LocalDate to, int roomId, int bookingId) {
         Booking bookingToBeUpdated = findById(bookingId);
-        if (updateIn(bookingToBeUpdated.getFrom(), bookingToBeUpdated.getTo(), from, to))
+        if (areDatesInTheSameRange(bookingToBeUpdated.getFrom(), bookingToBeUpdated.getTo(), from, to))
             return false;
 
-        for (Booking booking : findAll()) {
-            if (booking.getRoomId() == roomId) {
-                if (checkOverlapping(booking.getFrom(), booking.getTo(), from, to)) {
-                    break;
-                }
-                return false;
-            }
-        }
-        return true;
+        return areDatesOverlapped(bookingToBeUpdated.getFrom(), bookingToBeUpdated.getTo(), roomId);
     }
 
     private void validateBookings(List<Booking> bookings) {
@@ -200,37 +184,44 @@ public class BookingService {
         }
         for (Booking booking : bookings) {
             validateBooking(booking);
-            if (areBookingDatesOverlapped(booking.getFrom(), booking.getTo(), booking.getRoomId())) {
-                throw new BookingOverlappingException("Dates are overlapped");
-            }
         }
     }
 
     private void validateBooking(Booking booking) {
-        if (booking == null || !areBookingFieldsValid(booking)) {
-            throw new InvalidArgumentException("Invalid booking");
+        bookingNullCheck(booking);
+        validateDates(booking.getFrom(), booking.getTo());
+        validateGuest(booking.getGuestId());
+        validateRoom(booking.getRoomId(), booking.getNumberOfPeople());
+
+        if (areDatesOverlapped(booking.getFrom(), booking.getTo(), booking.getRoomId())) {
+            throw new BookingOverlappingException("The booking can not be created because dates are overlapped");
         }
     }
 
-    private boolean areBookingFieldsValid(Booking booking) {
-        int numberOfPeople = booking.getNumberOfPeople();
+    private void bookingNullCheck(Booking booking) {
+        if (booking == null) {
+            throw new InvalidArgumentException("Booking can not be null");
+        }
+    }
 
-        validateDates(booking.getFrom(), booking.getTo());
+    private void validateGuest(int guestId) {
+        guestService.findById(guestId);
+    }
 
-        guestService.findById(booking.getGuestId());
-
-        Room foundExistingRoom = roomService.findById(booking.getRoomId());
-
-        return foundExistingRoom.getRoomCapacity() >= numberOfPeople;
+    private void validateRoom(int roomId, int numberOfPeople) {
+        Room foundExistingRoom = roomService.findById(roomId);
+        if (foundExistingRoom.getRoomCapacity() < numberOfPeople) {
+            throw new InvalidArgumentException("The room does not have enough capacity");
+        }
     }
 
     private void validateDates(LocalDate from, LocalDate to) {
         if (from == null || to == null || from.isAfter(to) || from.equals(to) || from.isBefore(LocalDate.now())) {
-            throw new InvalidArgumentException("Invalid dates!");
+            throw new InvalidArgumentException("Invalid dates");
         }
     }
 
-    private boolean areBookingDatesOverlapped(LocalDate from, LocalDate to, int roomId) {
+    private boolean areDatesOverlapped(LocalDate from, LocalDate to, int roomId) {
         for (Booking book : findAll()) {
             if (book.getRoomId() == roomId && checkOverlapping(book.getFrom(), book.getTo(), from, to)) {
                 return true;
@@ -240,12 +231,13 @@ public class BookingService {
     }
 
     private boolean checkOverlapping(LocalDate bookedFrom, LocalDate bookedTo, LocalDate from, LocalDate to) {
-        return !(bookedFrom.isAfter(to) || (bookedFrom.isEqual(to))
-                || bookedTo.isBefore(from) || bookedTo.isEqual(from));
+        return !(bookedFrom.isAfter(to) || (bookedFrom.isEqual(to)) ||
+                (bookedTo.isBefore(from) || bookedTo.isEqual(from)));
     }
 
-    private boolean updateIn(LocalDate bookedFrom, LocalDate bookedTo, LocalDate from, LocalDate to) {
-        return ((bookedFrom.isAfter(from) || bookedFrom.isEqual(from)) &&
-                bookedTo.isAfter(to) || bookedTo.isEqual(to));
+    private boolean areDatesInTheSameRange(LocalDate bookedFrom, LocalDate bookedTo,
+                                           LocalDate fromUpdated, LocalDate toUpdated) {
+        return ((bookedFrom.isAfter(fromUpdated) || bookedFrom.isEqual(fromUpdated)) &&
+                (bookedTo.isAfter(toUpdated) || bookedTo.isEqual(toUpdated)));
     }
 }
