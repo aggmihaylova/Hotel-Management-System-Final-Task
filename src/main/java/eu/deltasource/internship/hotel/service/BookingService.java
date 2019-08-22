@@ -100,12 +100,6 @@ public class BookingService {
         if (!bookingRepository.existsById(bookingId)) {
             throw new ItemNotFoundException("Booking with id " + bookingId + " does not exist!");
         }
-
-        bookingNullCheck(newBooking);
-        validateGuest(newBooking.getGuestId());
-        validateRoom(newBooking.getRoomId(), newBooking.getNumberOfPeople());
-        validateUpdateBooking(newBooking, bookingId);
-
         deleteById(bookingId);
 
         save(newBooking);
